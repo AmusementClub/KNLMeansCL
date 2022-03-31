@@ -43,12 +43,12 @@ jobs:
         cp vapoursynth/include/*.h KNLMeansCL/
         sed -i -e '/#include <V/y|<>|""|' KNLMeansCL/NLMVapoursynth.h
 
-    - name: download avisynth header and patch header location
+    - name: copy avisynth header and patch header location
       shell: bash
       run: |
-        git clone https://github.com/AviSynth/AviSynthPlus/ --depth=1 avisynthplus
-        cp -r avisynthplus/avs_core/include/* KNLMeansCL/
+        mv KNLMeansCL/avisynth/* KNLMeansCL/
         sed -i -e '/# *include <avisynth/y|<>|""|' KNLMeansCL/NLMAvisynth.h
+        sed -i -e '/# *include <avs/y|<>|""|' KNLMeansCL/avisynth.h
 
     - name: setup MS dev commands
       uses: ilammy/msvc-dev-cmd@v1
@@ -59,7 +59,7 @@ jobs:
       run: choco install pkgconfiglite
 
     - name: Meson setup
-      run: meson setup builddir/ -Db_vscrt=mt -Dpkg_config_path=${{ github.workspace }}/vcpkg/installed/x64-windows/lib/pkgconfig:${{ github.workspace }}/vcpkg/installed/x64-windows-static/lib/pkgconfig
+      run: meson setup builddir/ -Db_vscrt=mt
       env:
         BOOST_ROOT: ${{ github.workspace }}/vcpkg/installed/x64-windows-static
         OPENCL_ROOT: ${{ github.workspace }}/vcpkg/installed/x64-windows
