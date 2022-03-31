@@ -1,11 +1,17 @@
 project('KNLMeansCL',
         'cpp',
-        default_options : ['cpp_std=gnu++11', 'buildtype=release'],
+        default_options : ['cpp_std=c++11', 'buildtype=release'],
         license : 'GPL-3',
         version : '1.1.1')
 
-vapoursynth = dependency('vapoursynth')
-deps = [vapoursynth]
+if build_machine.system() == 'windows'
+  deps = []
+  install_dir = 'installed'  # dummy
+else
+  vapoursynth = dependency('vapoursynth')
+  install_dir = join_paths(vapoursynth.get_pkgconfig_variable('libdir'), 'vapoursynth')
+  deps = [vapoursynth]
+endif
 
 opencl_dep = dependency('OpenCL', required : false)
 if not opencl_dep.found()
@@ -33,5 +39,5 @@ library(
     'knlmeanscl',
     src,
     dependencies : deps,
-    install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'vapoursynth'),
+    install_dir : install_dir,
     install : true)
