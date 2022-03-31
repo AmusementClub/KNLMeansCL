@@ -1,12 +1,16 @@
 project('KNLMeansCL',
         'cpp',
-        default_options : ['cpp_std=c++11', 'buildtype=release'],
+        default_options : ['cpp_std=c++17', 'buildtype=release'],
         license : 'GPL-3',
         version : '1.1.1')
 
+src = []
+link_args = []
 if build_machine.system() == 'windows'
   deps = []
   install_dir = 'installed'  # dummy
+  src += [ 'KNLMeansCL/win32-ocl.cpp' ]
+  link_args += [ '/DELAYLOAD:OpenCl.dll', 'delayimp.lib' ]
 else
   vapoursynth = dependency('vapoursynth')
   install_dir = join_paths(vapoursynth.get_pkgconfig_variable('libdir'), 'vapoursynth')
@@ -20,7 +24,7 @@ endif
 boost_dep = dependency('boost', modules : ['filesystem', 'system'])
 deps += [opencl_dep, boost_dep]
 
-src = [
+src += [
     'KNLMeansCL/NLMAvisynth.h',
     'KNLMeansCL/NLMAvisynth.cpp',
     'KNLMeansCL/NLMDefault.h',
@@ -39,5 +43,6 @@ library(
     'knlmeanscl',
     src,
     dependencies : deps,
+    link_args : link_args,
     install_dir : install_dir,
     install : true)
