@@ -5,19 +5,17 @@
 #include <vector>
 #include <stdexcept>
 #include <filesystem>
+#include <stdlib.h>
 
 #define DLL_DIR L"intelocl"
+
+#define ENV_VAR "OCL_ICD_FILENAMES"
+#define ICD_DLL "intelocl64.dll"
+
 
 #include <iostream>
 
 namespace {
-std::vector<std::wstring> dlls = {
-	// This list must be sorted by dependency.
-	L"task_executor64.dll",
-	// The last one must be the OpenCL.dll replacement.
-	L"intelocl64.dll",
-};
-
 namespace fs = std::filesystem;
 static fs::path dllDir() {
 	static const std::wstring res = []() -> std::wstring {
@@ -38,21 +36,6 @@ static fs::path dllDir() {
 	return fs::path(res).parent_path();
 }
 
-FARPROC loadDLLs() {
-	fs::path dir = dllDir() / DLL_DIR;
-	HMODULE h = nullptr;
-	for (const auto dll: dlls) {
-		fs::path p = dir / dll;
-		std::wstring s = p;
-		h = LoadLibraryW(s.c_str());
-		if (getenv("VS_OPENCL_VERBOSE"))
-			std::wcerr << L"intelocl: loading " << p << L": " << h << std::endl;
-		if (!h)
-			std::wcerr << L"intelocl: failed to load " << s << std::endl;
-	}
-	return (FARPROC)h;
-}
-
 extern "C" FARPROC WINAPI delayload_hook(unsigned reason, DelayLoadInfo* info) {
 	switch (reason) {
 	case dliNoteStartProcessing:
@@ -60,10 +43,18 @@ extern "C" FARPROC WINAPI delayload_hook(unsigned reason, DelayLoadInfo* info) {
 		// Nothing to do here.
 		break;
 	case dliNotePreLoadLibrary: {
+		fs::path dir = dllDir() / DLL_DIR;
+		fs::path icd_dll = dir / std::string(ICD_DLL);
+		std::string env = std::string(ENV_VAR "=") + icd_dll.string();
+		std::cerr << "setting " << env << std::endl;
+		_putenv(env.c_str());
+
 		//std::cerr << "loading " << info->szDll << std::endl;
-		HMODULE h = LoadLibraryA(info->szDll);
-		if (h) return (FARPROC)h;
-		return (FARPROC)loadDLLs();
+		fs::path loader_dll = dir / "OpenCL.dll";
+		std::string path = loader_dll.string();
+		HMODULE h = LoadLibraryA(path.c_str());
+		std::cerr << "loading " << path << ": " << h << std::endl;
+		return (FARPROC)h;
 	}
 	case dliNotePreGetProcAddress:
 		// Nothing to do here.
